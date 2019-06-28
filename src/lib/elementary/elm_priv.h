@@ -1026,4 +1026,7 @@ void efl_ui_widget_internal_set(Eo *obj, Eina_Bool internal);
 Eina_Bool efl_ui_widget_internal_get(Eo *obj);
 
 
+void efl_ui_scroll_connector_bind(Eo *obj, Eo *manager);
+void efl_ui_scroll_connector_unbind(Eo *obj);
+
 #endif
