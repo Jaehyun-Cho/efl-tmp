@@ -1,0 +1,13 @@
+class Efl.Ui.List_Position_Manager extends Efl.Object implements Efl.Ui.Item_Position_Manager
+{
+   implements {
+      Efl.Ui.Item_Position_Manager.data_access {set;}
+      Efl.Ui.Item_Position_Manager.viewport {set;}
+      Efl.Ui.Item_Position_Manager.scroll_positon {set;}
+      Efl.Ui.Item_Position_Manager.item_added;
+      Efl.Ui.Item_Position_Manager.item_removed;
+      Efl.Ui.Layout_Orientable.orientation {set; get;}
+      Efl.Gfx.Arrangement.content_align {set; get;}
+      Efl.Gfx.Arrangement.content_padding {set; get;}
+   }
+}

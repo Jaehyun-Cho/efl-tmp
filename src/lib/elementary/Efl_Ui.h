@@ -245,6 +245,11 @@ typedef Eo Efl_Ui_Active_View_Indicator;
 # include <efl_ui_navigation_layout.eo.h>
 # include <efl_ui_clickable.eo.h>
 # include <efl_ui_clickable_util.eo.h>
+#include <efl_ui_item.eo.h>
+# include <efl_ui_item_position_manager.eo.h>
+# include <efl_ui_item_container.eo.h>
+# include <efl_ui_list_position_manager.eo.h>
+
 
 /**
  * Initialize Elementary

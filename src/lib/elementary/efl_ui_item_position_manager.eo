@@ -1,0 +1,51 @@
+
+interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui.Layout_Orientable
+{
+   methods {
+      @property data_access {
+         [[set at construction time, general interface for accessing data fast]]
+         set {
+
+         }
+         values {
+           obj_access : accessor<Efl.Gfx.Entity>; [[The accessor for data, even if the id is valid, the returned object may be NULL]]
+           size_access : accessor<Eina.Size2D>; [[Accessor for the size, returned value always valid, might be changed / updated]]
+           size : int; [[valid size for accessor, 0 <= i < size]]
+         }
+      }
+      @property viewport {
+         [[called when the viewport is resized]]
+         set {
+
+         }
+         values {
+           viewport : Eina.Rect;
+         }
+      }
+      item_added {
+        params {
+          added_index : int;
+          subobj : Efl.Gfx.Entity;
+        }
+      }
+      item_removed {
+        params {
+          removed_index : int;
+          subobj : Efl.Gfx.Entity;
+        }
+      }
+      @property scroll_positon {
+         [[called when the position of the items has changed]]
+         set {
+
+         }
+         values {
+           x : double; [[X position of the scroller]]
+           y : double; [[Y position of the scroller]]
+         }
+      }
+   }
+   events {
+     content_size,changed : Eina.Size2D; [[called when the absolut size of all contents has changed, this can be used to resize the pan object]]
+   }
+}

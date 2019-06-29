@@ -158,6 +158,72 @@ _scroll_connector_hbar_unpress_cb(void *data,
    efl_event_callback_call(ctx->obj, EFL_UI_SCROLLBAR_EVENT_BAR_UNPRESS, &type);
 }
 
+static void
+_scroll_connector_bar_size_changed_cb(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Scroll_Connector_Context *ctx = data;
+   ELM_WIDGET_DATA_GET_OR_RETURN(ctx->obj, wd);
+
+   double width = 0.0, height = 0.0;
+
+   edje_object_calc_force(wd->resize_obj);
+   efl_ui_scrollbar_bar_size_get(ctx->smanager, &width, &height);
+   edje_object_part_drag_size_set(wd->resize_obj, "efl.dragable.hbar", width, 1.0);
+   edje_object_part_drag_size_set(wd->resize_obj, "efl.dragable.vbar", 1.0, height);
+}
+
+static void
+_scroll_connector_bar_pos_changed_cb(void *data, const Efl_Event *event EINA_UNUSED)
+{
+   Scroll_Connector_Context *ctx = data;
+   ELM_WIDGET_DATA_GET_OR_RETURN(ctx->obj, wd);
+
+   double posx = 0.0, posy = 0.0;
+
+   efl_ui_scrollbar_bar_position_get(ctx->smanager, &posx, &posy);
+   edje_object_part_drag_value_set(wd->resize_obj, "efl.dragable.hbar", posx, 0.0);
+   edje_object_part_drag_value_set(wd->resize_obj, "efl.dragable.vbar", 0.0, posy);
+}
+
+static void
+_scroll_connector_bar_show_cb(void *data, const Efl_Event *event)
+{
+   Scroll_Connector_Context *ctx = data;
+   ELM_WIDGET_DATA_GET_OR_RETURN(ctx->obj, wd);
+   Efl_Ui_Scrollbar_Direction type = *(Efl_Ui_Scrollbar_Direction *)(event->info);
+
+   if (type == EFL_UI_SCROLLBAR_DIRECTION_HORIZONTAL)
+     edje_object_signal_emit(wd->resize_obj, "efl,action,show,hbar", "efl");
+   else if (type == EFL_UI_SCROLLBAR_DIRECTION_VERTICAL)
+     edje_object_signal_emit(wd->resize_obj, "efl,action,show,vbar", "efl");
+}
+
+static void
+_scroll_connector_bar_hide_cb(void *data, const Efl_Event *event)
+{
+   Scroll_Connector_Context *ctx = data;
+   ELM_WIDGET_DATA_GET_OR_RETURN(ctx->obj, wd);
+   Efl_Ui_Scrollbar_Direction type = *(Efl_Ui_Scrollbar_Direction *)(event->info);
+
+   if (type == EFL_UI_SCROLLBAR_DIRECTION_HORIZONTAL)
+     edje_object_signal_emit(wd->resize_obj, "efl,action,hide,hbar", "efl");
+   else if (type == EFL_UI_SCROLLBAR_DIRECTION_VERTICAL)
+     edje_object_signal_emit(wd->resize_obj, "efl,action,hide,vbar", "efl");
+}
+static void
+_scroll_connector_resized_cb(void *data, const Efl_Event *ev EINA_UNUSED)
+{
+   Scroll_Connector_Context *ctx = data;
+   elm_layout_sizing_eval(ctx->obj);
+}
+
+static void
+_scroll_connector_size_hint_changed_cb(void *data, const Efl_Event *ev EINA_UNUSED)
+{
+   Scroll_Connector_Context *ctx = data;
+   elm_layout_sizing_eval(ctx->obj);
+}
+
 void
 efl_ui_scroll_connector_bind(Eo *obj, Eo *manager)
 {
@@ -166,6 +232,7 @@ efl_ui_scroll_connector_bind(Eo *obj, Eo *manager)
    ctx->smanager = manager;
    efl_key_data_set(obj, "__context", ctx);
 
+   //from the theme to the object
    efl_layout_signal_callback_add(obj, "reload", "efl",
                                   ctx, _scroll_connector_reload_cb, NULL);
    efl_layout_signal_callback_add(obj, "drag", "efl.dragable.vbar",
@@ -184,7 +251,6 @@ efl_ui_scroll_connector_bind(Eo *obj, Eo *manager)
                                   ctx, _scroll_connector_vbar_press_cb, NULL);
    efl_layout_signal_callback_add(obj, "efl,vbar,unpress", "efl",
                                   ctx, _scroll_connector_vbar_unpress_cb, NULL);
-
    efl_layout_signal_callback_add(obj, "drag", "efl.dragable.hbar",
                                   ctx, _scroll_connector_hbar_drag_cb, NULL);
    efl_layout_signal_callback_add(obj, "drag,set", "efl.dragable.hbar",
@@ -201,6 +267,19 @@ efl_ui_scroll_connector_bind(Eo *obj, Eo *manager)
                                   ctx, _scroll_connector_hbar_press_cb, NULL);
    efl_layout_signal_callback_add(obj, "efl,hbar,unpress", "efl",
                                   ctx, _scroll_connector_hbar_unpress_cb, NULL);
+   //from the object to the theme
+   efl_event_callback_add(obj, EFL_UI_SCROLLBAR_EVENT_BAR_SIZE_CHANGED,
+                          _scroll_connector_bar_size_changed_cb, ctx);
+   efl_event_callback_add(obj, EFL_UI_SCROLLBAR_EVENT_BAR_POS_CHANGED,
+                          _scroll_connector_bar_pos_changed_cb, ctx);
+   efl_event_callback_add(obj, EFL_UI_SCROLLBAR_EVENT_BAR_SHOW,
+                          _scroll_connector_bar_show_cb, ctx);
+   efl_event_callback_add(obj, EFL_UI_SCROLLBAR_EVENT_BAR_HIDE,
+                          _scroll_connector_bar_hide_cb, ctx);
+   efl_event_callback_add(obj, EFL_GFX_ENTITY_EVENT_SIZE_CHANGED,
+                          _scroll_connector_resized_cb, ctx);
+   efl_event_callback_add(obj, EFL_GFX_ENTITY_EVENT_HINTS_CHANGED,
+                          _scroll_connector_size_hint_changed_cb, ctx);
 }
 
 void
