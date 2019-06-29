@@ -12,7 +12,7 @@
 
 typedef struct {
    Eina_Accessor *content_acc, *size_acc;
-   int size;
+   unsigned int size;
    Eina_Rect viewport;
    Eina_Size2D abs_size;
    Eina_Vector2 scroll_position, align, padding;
@@ -20,13 +20,14 @@ typedef struct {
    int *size_cache;
    int average_item_size;
    struct {
-      int start_id, end_id;
+      unsigned int start_id, end_id;
    } prev_run;
 } Efl_Ui_List_Position_Manager_Data;
 
 static void
 cache_require(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
 {
+   unsigned int i;
    if (pd->size_cache) return;
 
    if (pd->size == 0)
@@ -38,12 +39,17 @@ cache_require(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
 
    pd->size_cache = calloc(pd->size + 1, sizeof(int));
    pd->size_cache[0] = 0;
-   for (int i = 0; i < pd->size; ++i)
+   for (i = 0; i < pd->size; ++i)
      {
         Eina_Size2D size;
+        int step;
 
         eina_accessor_data_get(pd->size_acc, i, (void**) &size);
-        pd->size_cache[i + 1] = pd->size_cache[i] + size.h;
+        if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+          step = size.h;
+        else
+          step = size.w;
+        pd->size_cache[i + 1] = pd->size_cache[i] + step;
      }
    pd->average_item_size = pd->size_cache[pd->size]/pd->size;
 }
@@ -56,13 +62,27 @@ cache_invalidate(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
    pd->size_cache = NULL;
 }
 
+static inline int
+cache_access(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, unsigned int idx)
+{
+   EINA_SAFETY_ON_FALSE_RETURN_VAL(idx <= pd->size, 0);
+   return pd->size_cache[idx];
+}
+
 static void
 recalc_absolut_size(Eo *obj, Efl_Ui_List_Position_Manager_Data *pd)
 {
    cache_require(obj, pd);
 
-   pd->abs_size.w = pd->viewport.w;
-   pd->abs_size.h = pd->size ? pd->size_cache[pd->size] : pd->viewport.h;
+   pd->abs_size = pd->viewport.size;
+
+   if (pd->size)
+     {
+        if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+          pd->abs_size.h = MAX(cache_access(obj, pd, pd->size), pd->abs_size.h);
+        else
+          pd->abs_size.w = MAX(cache_access(obj, pd, pd->size), pd->abs_size.w);
+     }
 
    efl_event_callback_call(obj, EFL_UI_ITEM_POSITION_MANAGER_EVENT_CONTENT_SIZE_CHANGED, &pd->abs_size);
 }
@@ -84,25 +104,38 @@ position_content(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
 {
    Eina_Rect geom;
    Eina_Size2D space_size;
-   int start_id = 0, end_id = 0;
+   unsigned int start_id = 0, end_id = 0, i;
+   int relevant_space_size, relevant_viewport;
 
    if (!pd->size) return;
 
    //space size contains the amount of space that is outside the viewport (either to the top or to the left)
    space_size.w = (MAX(pd->abs_size.w - pd->viewport.w, 0))*pd->scroll_position.x;
    space_size.h = (MAX(pd->abs_size.h - pd->viewport.h, 0))*pd->scroll_position.y;
-   start_id = space_size.h / pd->average_item_size;
 
-   for (; pd->size_cache[start_id] >= space_size.h && start_id > 0; start_id --) { }
+   EINA_SAFETY_ON_FALSE_RETURN(space_size.w >= 0 && space_size.h >= 0);
+   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+     {
+        relevant_space_size = space_size.h;
+        relevant_viewport = pd->viewport.h;
+     }
+   else
+     {
+        relevant_space_size = space_size.w;
+        relevant_viewport = pd->viewport.w;
+     }
+
+   start_id = relevant_space_size / pd->average_item_size;
+
+   for (; cache_access(obj, pd, start_id) >= relevant_space_size && start_id > 0; start_id --) { }
    end_id = start_id;
-   for (; end_id <= pd->size && pd->size_cache[end_id] <= space_size.h+pd->viewport.h ; end_id ++) { }
+   for (; end_id <= pd->size && cache_access(obj, pd, end_id) <= relevant_space_size + relevant_viewport ; end_id ++) { }
    end_id = MIN(end_id, pd->size);
    end_id = MAX(end_id, start_id + 1);
 
    //printf("space_size %d : starting point : %d : cached_space_starting_point %d end point : %d cache_space_end_point %d\n", space_size.h, start_id, pd->size_cache[start_id], end_id, pd->size_cache[end_id]);
-   //assertion, by that time, pd->size_cache[start_id] must be smaller than space_size
-   EINA_SAFETY_ON_FALSE_RETURN(pd->size_cache[start_id] <= space_size.h);
-   EINA_SAFETY_ON_FALSE_RETURN(pd->size_cache[end_id] >= space_size.h + pd->viewport.h);
+   EINA_SAFETY_ON_FALSE_RETURN(cache_access(obj, pd, start_id) <= relevant_space_size);
+   EINA_SAFETY_ON_FALSE_RETURN(cache_access(obj, pd, end_id) >= relevant_space_size + relevant_viewport);
    EINA_SAFETY_ON_FALSE_RETURN(start_id < end_id);
 
    if (end_id < pd->prev_run.start_id)
@@ -116,21 +149,30 @@ position_content(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
         vis_change_segment(pd, pd->prev_run.end_id, end_id, (pd->prev_run.end_id < end_id));
      }
 
-   geom.y = pd->viewport.y - (space_size.h - pd->size_cache[start_id]);
-   geom.x = pd->viewport.x;
-   geom.w = pd->viewport.w;
+   geom = pd->viewport;
 
-   for (int i = start_id; i < end_id; ++i)
+   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+     geom.y -= (relevant_space_size - cache_access(obj, pd, start_id));
+   else
+     geom.x -= (relevant_space_size - cache_access(obj, pd, start_id));
+
+   for (i = start_id; i < end_id; ++i)
      {
         Eina_Size2D size;
         Efl_Gfx_Entity *ent;
 
         eina_accessor_data_get(pd->size_acc, i, (void**) &size);
         eina_accessor_data_get(pd->content_acc, i, (void**) &ent);
-        geom.h = size.h;
+        if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+          geom.h = size.h;
+        else
+          geom.w = size.w;
         if (ent)
           efl_gfx_entity_geometry_set(ent, geom);
-        geom.y += size.h;
+        if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+          geom.y += size.h;
+        else
+          geom.x += size.w;
      }
    pd->prev_run.start_id = start_id;
    pd->prev_run.end_id = end_id;
@@ -182,6 +224,11 @@ EOLIAN static void
 _efl_ui_list_position_manager_efl_ui_layout_orientable_orientation_set(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, Efl_Ui_Layout_Orientation dir)
 {
    pd->dir = dir;
+   vis_change_segment(pd, pd->prev_run.start_id, pd->prev_run.end_id, EINA_FALSE);
+   pd->prev_run.start_id = 0;
+   pd->prev_run.end_id = 0;
+   cache_invalidate(obj, pd);
+   cache_require(obj,pd);
    recalc_absolut_size(obj, pd);
    position_content(obj, pd);
 }

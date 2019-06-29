@@ -8,6 +8,7 @@ class @beta Efl.Ui.Item_Container extends Efl.Ui.Layout_Base implements
                    Efl.Gfx.Arrangement
 {
    [[Simple grid widget with Pack interface.]]
+   event_prefix:efl_ui;
    methods {
       item_scroll {
          [[scroll move the item to show in the viewport.]]
@@ -79,7 +80,13 @@ class @beta Efl.Ui.Item_Container extends Efl.Ui.Layout_Base implements
       //Efl.Ui.Multi_Selectable
       Efl.Ui.Multi_Selectable.select_mode {get; set;}
    }
-
+   events {
+      item,pressed : Efl.Ui.Item;
+      item,unpressed : Efl.Ui.Item;
+      item,longpressed : Efl.Ui.Item;
+      item,clicked : Efl.Ui.Item;
+      item,clicked,any : Efl.Ui.Item;
+   }
    composite {
       Efl.Ui.Scrollable_Interactive;
       Efl.Ui.Scrollbar;

@@ -25,6 +25,7 @@ typedef struct {
    struct {
      double horizontal;
      double vertical;
+     double scalable;
    } padding;
    struct {
      double horizontal;
@@ -158,7 +159,7 @@ _size_accessor_init(Eina_Accessor *accessor)
 }
 
 static void
-_geometry_changed_cb(void *data, const Efl_Event *ev EINA_UNUSED)
+_pan_viewport_changed_cb(void *data, const Efl_Event *ev EINA_UNUSED)
 {
    MY_DATA_GET(data, pd);
    Eina_Rect rect = efl_ui_scrollable_viewport_geometry_get(data);
@@ -166,21 +167,27 @@ _geometry_changed_cb(void *data, const Efl_Event *ev EINA_UNUSED)
    efl_ui_item_position_manager_viewport_set(pd->pos_man, rect);
 }
 
-EFL_CALLBACKS_ARRAY_DEFINE(size_cb,
-  {EFL_GFX_ENTITY_EVENT_POSITION_CHANGED, _geometry_changed_cb},
-  {EFL_GFX_ENTITY_EVENT_SIZE_CHANGED, _geometry_changed_cb},
-)
-
 static void
 _pan_position_changed_cb(void *data, const Efl_Event *ev EINA_UNUSED)
 {
    MY_DATA_GET(data, pd);
    Eina_Position2D pos = efl_ui_pan_position_get(pd->pan);
    Eina_Position2D max = efl_ui_pan_position_max_get(pd->pan);
+   Eina_Vector2 rpos = {0.0, 0.0};
 
-   efl_ui_item_position_manager_scroll_positon_set(pd->pos_man,
-                          (double)pos.x/(double)max.x, (double)pos.y/(double)max.y);
+   if (max.x > 0.0)
+     rpos.x = (double)pos.x/(double)max.x;
+   if (max.y > 0.0)
+     rpos.y = (double)pos.y/(double)max.y;
+
+   efl_ui_item_position_manager_scroll_positon_set(pd->pos_man, rpos.x, rpos.y);
 }
+
+EFL_CALLBACKS_ARRAY_DEFINE(pan_events_cb,
+  {EFL_UI_PAN_EVENT_PAN_POSITION_CHANGED, _pan_position_changed_cb},
+  {EFL_UI_PAN_EVENT_PAN_VIEWPORT_CHANGED, _pan_viewport_changed_cb},
+)
+
 
 EOLIAN static void
 _efl_ui_item_container_item_scroll(Eo *obj, Efl_Ui_Item_Container_Data *pd, Efl_Ui_Item *item, Eina_Bool animation)
@@ -214,8 +221,6 @@ _efl_ui_item_container_efl_object_constructor(Eo *obj, Efl_Ui_Item_Container_Dat
    _obj_accessor_init(&pd->obj_accessor.pass_on);
    _size_accessor_init(&pd->size_accessor);
 
-   efl_event_callback_array_add(obj, size_cb(), obj);
-
    if (!elm_widget_theme_klass_get(obj))
      elm_widget_theme_klass_set(obj, "grid"); //FIXME this needs its own theme
 
@@ -226,7 +231,7 @@ _efl_ui_item_container_efl_object_constructor(Eo *obj, Efl_Ui_Item_Container_Dat
 
    pd->pan = efl_add(EFL_UI_PAN_CLASS, obj);
    efl_content_set(pd->pan, pd->sizer);
-   efl_event_callback_add(pd->pan, EFL_UI_PAN_EVENT_PAN_POSITION_CHANGED, _pan_position_changed_cb, obj);
+   efl_event_callback_array_add(pd->pan, pan_events_cb(), obj);
 
    pd->smanager = efl_add(EFL_UI_SCROLL_MANAGER_CLASS, obj);
    efl_composite_attach(obj, pd->smanager);
@@ -303,7 +308,7 @@ _efl_ui_item_container_efl_gfx_arrangement_content_padding_set(Eo *obj EINA_UNUS
 {
    pd->padding.horizontal = pad_horiz;
    pd->padding.vertical = pad_vert;
-   efl_gfx_arrangement_content_align_set(pd->pos_man, pad_horiz, pad_vert);
+   efl_gfx_arrangement_content_padding_set(pd->pos_man, pad_horiz, pad_vert, scalable);
 }
 
 EOLIAN static void
@@ -313,6 +318,8 @@ _efl_ui_item_container_efl_gfx_arrangement_content_padding_get(const Eo *obj EIN
      *pad_horiz = pd->padding.horizontal;
    if (pad_vert)
      *pad_vert = pd->padding.vertical;
+   if (scalable)
+     *scalable = pd->padding.scalable;
 }
 
 EOLIAN static void
@@ -332,11 +339,12 @@ _efl_ui_item_container_efl_gfx_arrangement_content_align_get(const Eo *obj EINA_
      *align_vert = pd->align.vertical;
 }
 
-
 EOLIAN static void
 _efl_ui_item_container_efl_ui_scrollable_interactive_match_content_set(Eo *obj EINA_UNUSED, Efl_Ui_Item_Container_Data *pd, Eina_Bool w, Eina_Bool h)
 {
-   //FIXME what is this
+   efl_ui_scrollable_match_content_set(pd->smanager, w, h);
+
+   elm_layout_sizing_eval(obj);
 }
 
 static void
@@ -415,15 +423,16 @@ _invalidate_cb(void *data, const Efl_Event *ev)
 static void
 _redirect_cb(void *data, const Efl_Event *ev)
 {
-   //Eo *obj = data;
+   Eo *obj = data;
 
 #define REDIRECT_EVT(item_evt, item) \
-   if (item_evt == ev->desc) efl_event_callback_call(obj, item, ev->info);
-   //REDIRECT_EVT(EFL_UI_EVENT_PRESSED, EFL_UI_EVENT_ITEM_PRESSED);
-   //REDIRECT_EVT(EFL_UI_EVENT_UNPRESSED, EFL_UI_EVENT_ITEM_UNPRESSED);
-   //REDIRECT_EVT(EFL_UI_EVENT_LONGPRESSED, EFL_UI_EVENT_ITEM_LONGPRESSED);
-   //REDIRECT_EVT(EFL_UI_EVENT_CLICKED_ANY, EFL_UI_EVENT_ITEM_CLICKED_ANY);
-   //REDIRECT_EVT(EFL_UI_EVENT_CLICKED, EFL_UI_EVENT_ITEM_CLICKED);
+   if (item_evt == ev->desc) efl_event_callback_call(obj, item, ev->object);
+   REDIRECT_EVT(EFL_UI_EVENT_PRESSED, EFL_UI_EVENT_ITEM_PRESSED);
+   REDIRECT_EVT(EFL_UI_EVENT_UNPRESSED, EFL_UI_EVENT_ITEM_UNPRESSED);
+   REDIRECT_EVT(EFL_UI_EVENT_LONGPRESSED, EFL_UI_EVENT_ITEM_LONGPRESSED);
+   REDIRECT_EVT(EFL_UI_EVENT_CLICKED_ANY, EFL_UI_EVENT_ITEM_CLICKED_ANY);
+   REDIRECT_EVT(EFL_UI_EVENT_CLICKED, EFL_UI_EVENT_ITEM_CLICKED);
+#undef REDIRECT_EVT
 }
 
 EFL_CALLBACKS_ARRAY_DEFINE(active_item,
