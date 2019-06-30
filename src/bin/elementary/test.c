@@ -393,6 +393,8 @@ void test_ui_active_view_scroll(void *data, Evas_Object *obj, void *event_info);
 void test_ui_relative_layout(void *data, Evas_Object *obj, void *event_info);
 void test_efl_ui_radio(void *data, Evas_Object *obj, void *event_info);
 void test_efl_ui_item_container(void *data, Evas_Object *obj, void *event_info );
+void test_efl_ui_item_container_update_speed(void *data, Evas_Object *obj, void *event_info );
+
 static void _list_udpate(void);
 
 static Evas_Object *win, *tbx, *entry; // TODO: refactoring
@@ -867,6 +869,7 @@ add_tests:
    ADD_TEST_EO(NULL, "Containers", "Efl.Ui.Table_Static", test_ui_table_static);
    ADD_TEST_EO(NULL, "Containers", "Efl.Ui.Relative_Layout", test_ui_relative_layout);
    ADD_TEST_EO(NULL, "Containers", "Efl.Ui.Item_Container", test_efl_ui_item_container);
+   ADD_TEST_EO(NULL, "Containers", "Efl.Ui.Item_Container Update Speed", test_efl_ui_item_container_update_speed);
 
    //------------------------------//
    ADD_TEST_EO(NULL, "Events", "Event Refeed", test_events);

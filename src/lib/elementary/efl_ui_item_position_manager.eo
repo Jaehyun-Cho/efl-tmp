@@ -44,6 +44,12 @@ interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui
            y : double; [[Y position of the scroller]]
          }
       }
+      position_single_item {
+         [[This positions the item at its correct position even if its outside the viewport]]
+         params {
+            idx : int;
+         }
+      }
    }
    events {
      content_size,changed : Eina.Size2D; [[called when the absolut size of all contents has changed, this can be used to resize the pan object]]

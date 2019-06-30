@@ -138,7 +138,7 @@ position_content(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd)
    EINA_SAFETY_ON_FALSE_RETURN(cache_access(obj, pd, end_id) >= relevant_space_size + relevant_viewport);
    EINA_SAFETY_ON_FALSE_RETURN(start_id < end_id);
 
-   if (end_id < pd->prev_run.start_id)
+   if (end_id < pd->prev_run.start_id || start_id > pd->prev_run.end_id)
      {
         vis_change_segment(pd, pd->prev_run.start_id, pd->prev_run.end_id, EINA_FALSE);
         vis_change_segment(pd, start_id, end_id, EINA_TRUE);
@@ -219,6 +219,50 @@ _efl_ui_list_position_manager_efl_ui_item_position_manager_item_removed(Eo *obj 
    efl_gfx_entity_visible_set(subobj, EINA_TRUE);
    cache_invalidate(obj, pd);
 }
+
+EOLIAN static void
+_efl_ui_list_position_manager_efl_ui_item_position_manager_position_single_item(Eo *obj, Efl_Ui_List_Position_Manager_Data *pd, int idx)
+{
+   Eina_Rect geom;
+   Eina_Size2D space_size;
+   int relevant_space_size;
+   Eina_Size2D size;
+   Efl_Gfx_Entity *ent;
+
+   if (!pd->size) return;
+
+   //space size contains the amount of space that is outside the viewport (either to the top or to the left)
+   space_size.w = (MAX(pd->abs_size.w - pd->viewport.w, 0))*pd->scroll_position.x;
+   space_size.h = (MAX(pd->abs_size.h - pd->viewport.h, 0))*pd->scroll_position.y;
+
+   EINA_SAFETY_ON_FALSE_RETURN(space_size.w >= 0 && space_size.h >= 0);
+   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+     {
+        relevant_space_size = space_size.h;
+     }
+   else
+     {
+        relevant_space_size = space_size.w;
+     }
+
+   geom = pd->viewport;
+
+   eina_accessor_data_get(pd->size_acc, idx, (void**)&size);
+   eina_accessor_data_get(pd->content_acc, idx, (void**)&ent);
+
+   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_VERTICAL)
+     {
+        geom.y -= (relevant_space_size - cache_access(obj, pd, idx));
+        geom.h = size.h;
+     }
+   else
+     {
+        geom.x -= (relevant_space_size - cache_access(obj, pd, idx));
+        geom.w = size.w;
+     }
+   efl_gfx_entity_geometry_set(ent, geom);
+}
+
 
 EOLIAN static void
 _efl_ui_list_position_manager_efl_ui_layout_orientable_orientation_set(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, Efl_Ui_Layout_Orientation dir)

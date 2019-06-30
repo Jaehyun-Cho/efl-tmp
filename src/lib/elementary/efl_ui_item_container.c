@@ -21,7 +21,7 @@ typedef struct {
    Eina_List *selected;
    Eina_List *items;
    Efl_Ui_Select_Mode mode;
-   Efl_Ui_Layout_Orientation orientation;
+   Efl_Ui_Layout_Orientation dir;
    struct {
      double horizontal;
      double vertical;
@@ -188,17 +188,78 @@ EFL_CALLBACKS_ARRAY_DEFINE(pan_events_cb,
   {EFL_UI_PAN_EVENT_PAN_VIEWPORT_CHANGED, _pan_viewport_changed_cb},
 )
 
+static void
+_item_scroll_internal(Eo *obj EINA_UNUSED,
+                      Efl_Ui_Item_Container_Data *pd,
+                      Efl_Ui_Item *item,
+                      double align,
+                      Eina_Bool anim)
+{
+   Eina_Rect ipos, view;
+   Eina_Position2D vpos;
+
+   if (!pd->smanager) return;
+
+   efl_ui_item_position_manager_position_single_item(pd->pos_man, eina_list_data_idx(pd->items, item));
+   ipos = efl_gfx_entity_geometry_get(item);
+   view = efl_ui_scrollable_viewport_geometry_get(pd->smanager);
+   vpos = efl_ui_scrollable_content_pos_get(pd->smanager);
+
+   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_HORIZONTAL)
+     {
+       ipos.y = view.y;
+       //ipos.h = ipos.h;
+
+       // FIXME: align case will not correctly show in the position because of
+       //        bar size calculation. there are no certain way to know the scroll calcuation finished.
+       if (EINA_DBL_EQ(align, -1.0)) //Internal Prefix
+         {
+            ipos.x = ipos.x + vpos.x - view.x;
+            //ipos.w = ipos.w;
+         }
+       else if ((align > 0.0 || EINA_DBL_EQ(align, 0.0)) &&
+                (align < 1.0 || EINA_DBL_EQ(align, 1.0)))
+         {
+            ipos.x = ipos.x + vpos.x - view.x - (int)((view.w - ipos.w) * align);
+            ipos.w = view.w;
+         }
+       else ERR("align (%.2lf) is not proper value. it must be the value between [0.0 , 1.0]!", align);
+
+     }
+  else //VERTICAL
+    {
+       ipos.x = view.x;
+       //ipos.w = ipos.w;
+
+       // FIXME: align case will not correctly show in the position because of
+       //        bar size calculation. there are no certain way to know the scroll calcuation finished.
+       if (EINA_DBL_EQ(align, -1.0)) //Internal Prefix
+         {
+            ipos.y = ipos.y + vpos.y - view.y;
+            //ipos.h = ipos.h;
+         }
+       else if ((align > 0.0 || EINA_DBL_EQ(align, 0.0)) &&
+                (align < 1.0 || EINA_DBL_EQ(align, 1.0)))
+         {
+            ipos.y = ipos.y + vpos.y - view.y - (int)((view.h - ipos.h) * align);
+            ipos.h = view.h;
+         }
+       else ERR("align (%.2lf) is not proper value. it must be the value between [0.0 , 1.0]!", align);
+    }
+
+   efl_ui_scrollable_scroll(pd->smanager, ipos, anim);
+}
 
 EOLIAN static void
 _efl_ui_item_container_item_scroll(Eo *obj, Efl_Ui_Item_Container_Data *pd, Efl_Ui_Item *item, Eina_Bool animation)
 {
-
+   _item_scroll_internal(obj, pd, item, -1.0, animation);
 }
 
 EOLIAN static void
 _efl_ui_item_container_item_scroll_align(Eo *obj, Efl_Ui_Item_Container_Data *pd, Efl_Ui_Item *item, double align, Eina_Bool animation)
 {
-
+   _item_scroll_internal(obj, pd, item, align, animation);
 }
 
 EOLIAN static Efl_Ui_Item*
@@ -293,14 +354,14 @@ _efl_ui_item_container_efl_container_content_count(Eo *obj EINA_UNUSED, Efl_Ui_I
 EOLIAN static void
 _efl_ui_item_container_efl_ui_layout_orientable_orientation_set(Eo *obj EINA_UNUSED, Efl_Ui_Item_Container_Data *pd, Efl_Ui_Layout_Orientation dir)
 {
-   pd->orientation = dir;
+   pd->dir = dir;
    efl_ui_layout_orientation_set(pd->pos_man, dir);
 }
 
 EOLIAN static Efl_Ui_Layout_Orientation
 _efl_ui_item_container_efl_ui_layout_orientable_orientation_get(const Eo *obj EINA_UNUSED, Efl_Ui_Item_Container_Data *pd)
 {
-   return pd->orientation;
+   return pd->dir;
 }
 
 EOLIAN static void
