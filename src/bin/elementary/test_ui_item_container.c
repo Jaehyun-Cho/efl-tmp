@@ -26,18 +26,38 @@ _scroll_to_animated_cb(void *data, const Efl_Event *ev)
 static void
 _scroll_to_cb(void *data, const Efl_Event *ev)
 {
-   Efl_Ui_Widget *element_1154 = efl_key_data_get(ev->object, "__to_element");
+   Efl_Ui_Widget *element_10 = efl_key_data_get(ev->object, "__to_element");
 
-   EINA_SAFETY_ON_NULL_RETURN(element_1154);
+   EINA_SAFETY_ON_NULL_RETURN(element_10);
 
-   efl_ui_item_container_item_scroll(data, element_1154, EINA_FALSE);
+   efl_ui_item_container_item_scroll(data, element_10, EINA_FALSE);
+}
+
+static void
+_change_min_size_cb(void *data, const Efl_Event *ev)
+{
+   static Eina_Bool b = EINA_FALSE;
+   Efl_Ui_Widget *element_0 = efl_key_data_get(ev->object, "__to_element");
+
+   EINA_SAFETY_ON_NULL_RETURN(element_0);
+
+   if (b)
+     {
+        b = EINA_FALSE;
+        efl_gfx_hint_size_min_set(element_0, EINA_SIZE2D(40, 200));
+     }
+   else
+     {
+        b = EINA_TRUE;
+        efl_gfx_hint_size_min_set(element_0, EINA_SIZE2D(40, 40));
+     }
 }
 
 void test_efl_ui_item_container(void *data EINA_UNUSED,
                                    Evas_Object *obj EINA_UNUSED,
                                    void *event_info EINA_UNUSED)
 {
-   Efl_Ui_Win *win, *o, *tbl, *item_container, *element_1154, *element_10;
+   Efl_Ui_Win *win, *o, *tbl, *item_container, *element_1154, *element_10, *element_0;
 
    win = efl_add(EFL_UI_WIN_CLASS, efl_main_loop_get(),
                  efl_ui_win_type_set(efl_added, EFL_UI_WIN_TYPE_BASIC),
@@ -65,6 +85,8 @@ void test_efl_ui_item_container(void *data EINA_UNUSED,
           element_1154 = il;
         if (i == 10)
           element_10 = il;
+        if (i == 0)
+          element_0 = il;
      }
    efl_pack_table(tbl, o, 1, 0, 1, 10);
 
@@ -91,6 +113,14 @@ void test_efl_ui_item_container(void *data EINA_UNUSED,
    efl_key_data_set(o, "__to_element", element_10);
    efl_event_callback_add(o, EFL_UI_EVENT_CLICKED, _scroll_to_cb, item_container);
    efl_pack_table(tbl, o, 0, 2, 1, 1);
+
+   o = efl_add(EFL_UI_BUTTON_CLASS, tbl,
+           efl_gfx_hint_weight_set(efl_added, 0.0, 0.0),
+           efl_gfx_hint_align_set(efl_added, 0, 0.5));
+   efl_text_set(o, "Change min size of 0");
+   efl_key_data_set(o, "__to_element", element_0);
+   efl_event_callback_add(o, EFL_UI_EVENT_CLICKED, _change_min_size_cb, item_container);
+   efl_pack_table(tbl, o, 0, 3, 1, 1);
 
    efl_gfx_entity_size_set(win, EINA_SIZE2D(260, 200));
 }

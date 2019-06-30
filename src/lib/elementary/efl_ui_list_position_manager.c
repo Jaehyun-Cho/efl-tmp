@@ -15,7 +15,10 @@ typedef struct {
    unsigned int size;
    Eina_Rect viewport;
    Eina_Size2D abs_size;
-   Eina_Vector2 scroll_position, align, padding;
+   Eina_Vector2 scroll_position, align;
+   struct {
+      double x, y, scalable;
+   } padding;
    Efl_Ui_Layout_Orientation dir;
    int *size_cache;
    int average_item_size;
@@ -205,7 +208,7 @@ _efl_ui_list_position_manager_efl_ui_item_position_manager_scroll_positon_set(Eo
 }
 
 EOLIAN static void
-_efl_ui_list_position_manager_efl_ui_item_position_manager_item_added(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, int added_index, Efl_Gfx_Entity *subobj)
+_efl_ui_list_position_manager_efl_ui_item_position_manager_item_added(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, int added_index EINA_UNUSED, Efl_Gfx_Entity *subobj)
 {
    pd->size ++;
    efl_gfx_entity_visible_set(subobj, EINA_FALSE);
@@ -213,7 +216,7 @@ _efl_ui_list_position_manager_efl_ui_item_position_manager_item_added(Eo *obj EI
 }
 
 EOLIAN static void
-_efl_ui_list_position_manager_efl_ui_item_position_manager_item_removed(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, int removed_index, Efl_Gfx_Entity *subobj)
+_efl_ui_list_position_manager_efl_ui_item_position_manager_item_removed(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, int removed_index EINA_UNUSED, Efl_Gfx_Entity *subobj)
 {
    pd->size --;
    efl_gfx_entity_visible_set(subobj, EINA_TRUE);
@@ -265,6 +268,16 @@ _efl_ui_list_position_manager_efl_ui_item_position_manager_position_single_item(
 
 
 EOLIAN static void
+_efl_ui_list_position_manager_efl_ui_item_position_manager_item_size_changed(Eo *obj, Efl_Ui_List_Position_Manager_Data *pd, int index EINA_UNUSED, Efl_Gfx_Entity *subobj EINA_UNUSED)
+{
+   //FIXME this needs a better solution
+   cache_invalidate(obj, pd);
+   recalc_absolut_size(obj, pd);
+   position_content(obj, pd);
+}
+
+
+EOLIAN static void
 _efl_ui_list_position_manager_efl_ui_layout_orientable_orientation_set(Eo *obj EINA_UNUSED, Efl_Ui_List_Position_Manager_Data *pd, Efl_Ui_Layout_Orientation dir)
 {
    pd->dir = dir;
@@ -304,6 +317,7 @@ _efl_ui_list_position_manager_efl_gfx_arrangement_content_padding_set(Eo *obj EI
 {
    pd->padding.x = pad_vert;
    pd->padding.y = pad_horiz;
+   pd->padding.scalable = scalable;
 }
 
 EOLIAN static void
@@ -313,6 +327,8 @@ _efl_ui_list_position_manager_efl_gfx_arrangement_content_padding_get(const Eo *
      *pad_vert = pd->padding.x;
    if (*pad_horiz)
      *pad_horiz = pd->padding.y;
+   if (*scalable)
+     *scalable = pd->padding.scalable;
 }
 
 #include "efl_ui_list_position_manager.eo.c"

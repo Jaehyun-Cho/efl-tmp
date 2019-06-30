@@ -22,18 +22,6 @@ interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui
            viewport : Eina.Rect;
          }
       }
-      item_added {
-        params {
-          added_index : int;
-          subobj : Efl.Gfx.Entity;
-        }
-      }
-      item_removed {
-        params {
-          removed_index : int;
-          subobj : Efl.Gfx.Entity;
-        }
-      }
       @property scroll_positon {
          [[called when the position of the items has changed]]
          set {
@@ -49,6 +37,24 @@ interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui
          params {
             idx : int;
          }
+      }
+      item_added {
+        params {
+          added_index : int;
+          subobj : Efl.Gfx.Entity;
+        }
+      }
+      item_removed {
+        params {
+          removed_index : int;
+          subobj : Efl.Gfx.Entity;
+        }
+      }
+      item_size_changed {
+        params {
+          index : int;
+          subobj : Efl.Gfx.Entity;
+        }
       }
    }
    events {

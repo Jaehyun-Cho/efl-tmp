@@ -482,6 +482,16 @@ _invalidate_cb(void *data, const Efl_Event *ev)
 }
 
 static void
+_hints_changed_cb(void *data, const Efl_Event *ev)
+{
+   Eo *obj = data;
+   MY_DATA_GET(obj, pd);
+   int idx = eina_list_data_idx(pd->items, ev->object);
+
+   efl_ui_item_position_manager_item_size_changed(pd->pos_man, idx, ev->object);
+}
+
+static void
 _redirect_cb(void *data, const Efl_Event *ev)
 {
    Eo *obj = data;
@@ -497,6 +507,7 @@ _redirect_cb(void *data, const Efl_Event *ev)
 }
 
 EFL_CALLBACKS_ARRAY_DEFINE(active_item,
+  {EFL_GFX_ENTITY_EVENT_HINTS_CHANGED, _hints_changed_cb},
   {EFL_UI_EVENT_ITEM_SELECTED, _selected_cb},
   {EFL_UI_EVENT_ITEM_UNSELECTED, _unselected_cb},
   {EFL_UI_EVENT_PRESSED, _redirect_cb},
