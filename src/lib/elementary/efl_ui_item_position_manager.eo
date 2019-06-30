@@ -1,9 +1,14 @@
 
 interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui.Layout_Orientable
 {
+   [[
+     This abstracts the basic placement of items in a not defined form under a viewport.
+
+     The interface gets a defined set of elements that is meant to be displayed. The implementation provides a way to calculate the size that is required to display all items. Every time this absolut size of items is changed, content_size,changed is called.
+   ]]
    methods {
       @property data_access {
-         [[set at construction time, general interface for accessing data fast]]
+         [[Called when a instance of this class is set to a item_container (or the async variation)]]
          set {
 
          }
@@ -14,7 +19,7 @@ interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui
          }
       }
       @property viewport {
-         [[called when the viewport is resized]]
+         [[This is the position and size of the viewport, where elements are displayed in. The outside of this geometry is going to be clibbed off.]]
          set {
 
          }
@@ -23,34 +28,37 @@ interface @beta Efl.Ui.Item_Position_Manager extends Efl.Gfx.Arrangement, Efl.Ui
          }
       }
       @property scroll_positon {
-         [[called when the position of the items has changed]]
+         [[The position we are currently in in the absolut size of items]]
          set {
 
          }
          values {
-           x : double; [[X position of the scroller]]
-           y : double; [[Y position of the scroller]]
+           x : double; [[X position of the scroller, valid form 0 to 1.0]]
+           y : double; [[Y position of the scroller, valid form 0 to 1.0]]
          }
       }
       position_single_item {
-         [[This positions the item at its correct position even if its outside the viewport]]
+         [[This is a request to position the item at id $idx. This means, the geometry of the item has to have to correct values, even outside the viewport. This is usefull for scrolling to / focusing elements on a screen.]]
          params {
-            idx : int;
+            idx : int; [[The id for the item]]
          }
       }
       item_added {
+        [[The new item $subobj has been added at the $added_index field.]]
         params {
           added_index : int;
           subobj : Efl.Gfx.Entity;
         }
       }
       item_removed {
+        [[The new item $subobj has been removed at the $removed_index field.]]
         params {
           removed_index : int;
           subobj : Efl.Gfx.Entity;
         }
       }
       item_size_changed {
+        [[The size of the given $subobj / $index returned from the accessor will be different this time]]
         params {
           index : int;
           subobj : Efl.Gfx.Entity;
