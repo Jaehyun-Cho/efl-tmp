@@ -109,7 +109,7 @@ void test_efl_ui_item_container(void *data EINA_UNUSED,
    o = efl_add(EFL_UI_BUTTON_CLASS, tbl,
            efl_gfx_hint_weight_set(efl_added, 0.0, 0.0),
            efl_gfx_hint_align_set(efl_added, 0, 0.5));
-   efl_text_set(o, "Scroll to 1154");
+   efl_text_set(o, "Scroll to 10");
    efl_key_data_set(o, "__to_element", element_10);
    efl_event_callback_add(o, EFL_UI_EVENT_CLICKED, _scroll_to_cb, item_container);
    efl_pack_table(tbl, o, 0, 2, 1, 1);

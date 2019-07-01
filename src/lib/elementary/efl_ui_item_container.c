@@ -15,6 +15,7 @@
 
 #define MY_DATA_GET(obj, pd) \
   Efl_Ui_Item_Container_Data *pd = efl_data_scope_get(obj, MY_CLASS);
+
 typedef struct {
    Efl_Ui_Scroll_Manager *smanager;
    Efl_Ui_Pan *pan;
@@ -36,6 +37,10 @@ typedef struct {
       Eina_Accessor pass_on;
       Eina_Accessor *real_acc;
    } obj_accessor;
+   struct {
+      Eina_Bool w;
+      Eina_Bool h;
+   } match_content;
    Eina_Accessor size_accessor;
    Efl_Gfx_Entity *sizer;
 } Efl_Ui_Item_Container_Data;
@@ -205,48 +210,10 @@ _item_scroll_internal(Eo *obj EINA_UNUSED,
    view = efl_ui_scrollable_viewport_geometry_get(pd->smanager);
    vpos = efl_ui_scrollable_content_pos_get(pd->smanager);
 
-   if (pd->dir == EFL_UI_LAYOUT_ORIENTATION_HORIZONTAL)
-     {
-       ipos.y = view.y;
-       //ipos.h = ipos.h;
+   ipos.x = ipos.x + vpos.x - view.x;
+   ipos.y = ipos.y + vpos.y - view.y;
 
-       // FIXME: align case will not correctly show in the position because of
-       //        bar size calculation. there are no certain way to know the scroll calcuation finished.
-       if (EINA_DBL_EQ(align, -1.0)) //Internal Prefix
-         {
-            ipos.x = ipos.x + vpos.x - view.x;
-            //ipos.w = ipos.w;
-         }
-       else if ((align > 0.0 || EINA_DBL_EQ(align, 0.0)) &&
-                (align < 1.0 || EINA_DBL_EQ(align, 1.0)))
-         {
-            ipos.x = ipos.x + vpos.x - view.x - (int)((view.w - ipos.w) * align);
-            ipos.w = view.w;
-         }
-       else ERR("align (%.2lf) is not proper value. it must be the value between [0.0 , 1.0]!", align);
-
-     }
-  else //VERTICAL
-    {
-       ipos.x = view.x;
-       //ipos.w = ipos.w;
-
-       // FIXME: align case will not correctly show in the position because of
-       //        bar size calculation. there are no certain way to know the scroll calcuation finished.
-       if (EINA_DBL_EQ(align, -1.0)) //Internal Prefix
-         {
-            ipos.y = ipos.y + vpos.y - view.y;
-            //ipos.h = ipos.h;
-         }
-       else if ((align > 0.0 || EINA_DBL_EQ(align, 0.0)) &&
-                (align < 1.0 || EINA_DBL_EQ(align, 1.0)))
-         {
-            ipos.y = ipos.y + vpos.y - view.y - (int)((view.h - ipos.h) * align);
-            ipos.h = view.h;
-         }
-       else ERR("align (%.2lf) is not proper value. it must be the value between [0.0 , 1.0]!", align);
-    }
-
+   //FIXME scrollable needs some sort of align, the docs do not even garantee to completly move in the element
    efl_ui_scrollable_scroll(pd->smanager, ipos, anim);
 }
 
@@ -403,8 +370,13 @@ _efl_ui_item_container_efl_gfx_arrangement_content_align_get(const Eo *obj EINA_
 EOLIAN static void
 _efl_ui_item_container_efl_ui_scrollable_interactive_match_content_set(Eo *obj EINA_UNUSED, Efl_Ui_Item_Container_Data *pd, Eina_Bool w, Eina_Bool h)
 {
-   efl_ui_scrollable_match_content_set(pd->smanager, w, h);
+   if (pd->match_content.w == w && pd->match_content.h == h)
+     return;
 
+   pd->match_content.w = w;
+   pd->match_content.h = h;
+
+   efl_ui_scrollable_match_content_set(pd->smanager, w, h);
    elm_layout_sizing_eval(obj);
 }
 
